@@ -192,7 +192,7 @@ fun CategoryComponent(category:String, dishes: List<String>, onDishClicked: (Str
 fun DisplayCategoryList(itemStateItems: SnapshotStateList<Items>, itemStatePrices: SnapshotStateList<Prices>, onDishClicked: (String) -> Unit, coilImageFromUrl: @Composable (String, Modifier) -> Unit) {
     LazyColumn {
         items(itemStateItems) { item ->
-            val itemPrice = itemStatePrices.find { it.id == item.id } // Recherchez le prix correspondant à l'élément
+            //val itemPrice = itemStatePrices.find { it.id == item.id } // Recherchez le prix correspondant à l'élément
             Row(verticalAlignment = Alignment.CenterVertically) {
                 coilImageFromUrl(
                     item.images.last() ?: "", // Utilisez l'URL de l'image de l'élément
@@ -220,13 +220,13 @@ fun DisplayCategoryList(itemStateItems: SnapshotStateList<Items>, itemStatePrice
                     //)
                 //}
             }
-            itemPrice?.let {
-            Text(
-                text = itemPrice.price ?: "", // Affichez le prix trouvé à partir de l'objet itemPrice
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
+            //itemPrice?.let {
+            //Text(
+                //text = itemPrice.price ?: "", // Affichez le prix trouvé à partir de l'objet itemPrice
+                //textAlign = TextAlign.Center,
+                //modifier = Modifier.padding(vertical = 8.dp)
+                //)
+            //}
         }
     }
 }
