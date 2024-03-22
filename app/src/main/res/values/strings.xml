@@ -1,0 +1,24 @@
+<resources>
+
+    <string name="app_name">AndroidERestaurant</string>
+    <string name="baseline_android_24_content_description">LogoAndroid</string>
+    <string name="title_activity_cat_liste">ActivityCatListe</string>
+
+    <string-array name="entries_titles">
+        <item>Entrée 1</item>
+        <item>Entrée 2</item>
+    </string-array>
+
+    <string-array name="main_course_titles">
+        <item>Plat 1</item>
+        <item>Plat 2</item>
+    </string-array>
+
+    <string-array name="desserts_titles">
+        <item>Dessert 1</item>
+        <item>Dessert 2</item>
+    </string-array>
+
+    <string name="title_activity_cat_details">ActivityCatDetails</string>
+
+</resources>

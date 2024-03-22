@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <color name="header_background_color">#ff8519</color>
+    <color name="header_text_color">#FFFFFF</color>
+
+    <style name="Theme.AndroidERestaurant" parent="android:Theme.Material.Light">
+        <item name="android:background">@color/header_background_color</item>
+        <item name="android:textColorPrimary">@color/header_text_color</item>
+    </style>
+
+</resources>
