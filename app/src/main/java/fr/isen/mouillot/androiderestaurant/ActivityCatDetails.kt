@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -160,7 +163,7 @@ class ActivityCatDetails : ComponentActivity() {
                                     //var priceText by remember { mutableStateOf(TextFieldValue(price.toString())) }
 
                                     Text(
-                                        text = totalPrice.toString(),
+                                        text = quantity.toString(),
                                         modifier = Modifier.padding(8.dp),
                                         style = TextStyle(fontSize = 30.sp, color = Color.Black)
                                     )
@@ -190,6 +193,11 @@ class ActivityCatDetails : ComponentActivity() {
                                             Text("Plat ajouté au panier")
                                         }
                                     }
+                                    Text(
+                                        text = "Total : ${totalPrice}",
+                                        style = TextStyle(fontSize = 30.sp),
+                                        color = Color.Black
+                                    )
                                 }
                             }
                         }
@@ -205,12 +213,7 @@ class ActivityCatDetails : ComponentActivity() {
                                         modifier = Modifier.fillMaxWidth() // Utiliser toute la largeur disponible
                                     ) {
                                         Spacer(modifier = Modifier.height(60.dp)) // Espace vertical entre le contenu principal et les boutons
-                                        coilImageFromUrl(
-                                            item.images.lastOrNull() ?: "",
-                                            Modifier
-                                                .size(50.dp)
-                                                .padding(8.dp)
-                                        )
+                                        ImageCarousel(images = item.images)
                                         Text(
                                             text = item.nameFr ?: "",
                                             textAlign = TextAlign.Center,
@@ -327,6 +330,23 @@ class ActivityCatDetails : ComponentActivity() {
 
         // Ajouter la demande à la file d'attente de Volley pour l'exécution
         Volley.newRequestQueue(this).add(jsonObjectRequest)
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun ImageCarousel(images: List<String>) {
+    val pagerState = rememberPagerState(pageCount = { images.size })
+
+    HorizontalPager(state = pagerState ) { page ->
+        //val index = page + 1 // Add 1 to the index of the page, as there are no images for item.images[0] but it doesn't work using index
+        Image(
+            painter = rememberImagePainter(images[page]),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp) // Ajustez la hauteur selon vos besoins
+        )
     }
 }
 
