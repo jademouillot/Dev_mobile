@@ -1,40 +1,98 @@
 package fr.isen.mouillot.androiderestaurant
 
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.rememberImagePainter
+import com.android.volley.Request
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.Volley
+import com.google.gson.Gson
+import fr.isen.mouillot.androiderestaurant.model.DataResult
+import fr.isen.mouillot.androiderestaurant.model.Ingredients
+import fr.isen.mouillot.androiderestaurant.model.Items
+import fr.isen.mouillot.androiderestaurant.model.Prices
+import org.json.JSONObject
+import androidx.compose.runtime.LaunchedEffect
+import java.io.File
+import androidx.compose.material.Snackbar
+import fr.isen.mouillot.androiderestaurant.model.iteminfo
 
 class ActivityCatDetails : ComponentActivity() {
+    @Composable
+    fun coilImageFromUrl(imageUrl: String, modifier: Modifier = Modifier) {
+        val painter: Painter = rememberImagePainter(
+            data = imageUrl,
+            builder = {
+                // Ajoutez des options de configuration si nécessaire
+                // ex. crossfade(true)
+            }
+        )
+        Image(
+            painter = painter,
+            contentDescription = null, // Indiquez une description du contenu si nécessaire
+            modifier = Modifier.size(200.dp)
+        )
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        @Composable
-        fun CoilImageFromUrl(imageUrl: String, modifier: Modifier = Modifier) {
-            val painter: Painter = rememberImagePainter(
-                data = imageUrl,
-                builder = {
-                    // Ajoutez des options de configuration si nécessaire
-                    // ex. crossfade(true)
-                }
-            )
-            Image(
-                painter = painter,
-                contentDescription = null, // Indiquez une description du contenu si nécessaire
-                modifier = Modifier.size(200.dp)
-            )
-        }
+        val cat = intent.getStringExtra("cle") ?: ""
+
+        val dish = intent.getStringExtra("dish") ?: ""
+
+        val price = intent.getStringExtra("price") ?: ""
+        val priceint = price.toIntOrNull()
+
+        val itemStateItems = mutableStateListOf<Items>()
+        fetchDataItems(cat, itemStateItems)
+        val itemStatePrices = mutableStateListOf<Prices>()
+        fetchDataPrices(cat, dish, itemStatePrices)
+        //val itemStateIngredients = mutableStateListOf<Ingredients>()
+        //fetchDataIngredients(cat, itemStateIngredients)
+
+        //fetchDataIngredients("YourCategoryTitle", itemStateIngredients)
+
+        val ingredientState =  mutableStateListOf<Ingredients>()
+
+        // Appeler fetchDataIngredients pour récupérer les ingrédients d'un plat spécifique
+        fetchDataIngredients(cat, dish, ingredientState)
 
         setContent {
             fr.isen.mouillot.androiderestaurant.ui.theme.ui.theme.AndroidERestaurantTheme {
@@ -44,16 +102,280 @@ class ActivityCatDetails : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     //Greeting3("Android")
+                    actionBar?.title = dish
 
-                    val cat = intent.getStringExtra("dish") ?: ""
+                    Box(
+                        modifier = Modifier.fillMaxSize() // Remplir toute la taille de l'écran
+                    ) {
+                        val dishItem = itemStateItems.find { it.nameFr == dish }
+                        //val dishIngredients = itemStateIngredients.filter { it.id == dishItem?.id }
 
-                    actionBar?.title = cat
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                //verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Spacer(modifier = Modifier.height(100.dp)) // Espace vertical entre le contenu principal et les boutons
 
-                    CoilImageFromUrl(
-                        imageUrl = "data:image/jpeg;base64,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",
-                        modifier = Modifier.size(100.dp) // Spécifiez la taille de l'image si nécessaire
-                    )
+                                //val priceString = itemStatePrices.getOrNull(0)?.price ?: "" // Suppose price est un String
+                                //val price: Number = priceString.toInt() ?: 0.0 // Convertir le String en Double
 
+                                val filename = "cart.json"
+                                val file = File(filesDir, filename)
+
+                                var quantity by remember { mutableIntStateOf(1) }
+                                //var totalPrice = remember { mutableIntStateOf(quantity * (priceint ?: 0)) }
+
+                                var totalPrice by remember { mutableStateOf(quantity * (priceint ?: 0)) }
+                                var showSnackbar by remember { mutableStateOf(false) }
+
+
+                                LaunchedEffect(quantity) {
+                                    totalPrice = quantity * (priceint ?: 0)
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "-",
+                                        style = TextStyle(fontSize = 30.sp),
+                                        color = Color.Black,
+                                        modifier = Modifier.clickable {
+                                            if (quantity > 1) {
+                                                quantity--
+                                                //totalPrice.value = quantity * price
+                                                showToast("Decreased")
+                                            }
+                                        }
+                                    )
+                                    //var priceText by remember { mutableStateOf(TextFieldValue(price.toString())) }
+
+                                    Text(
+                                        text = totalPrice.toString(),
+                                        modifier = Modifier.padding(8.dp),
+                                        style = TextStyle(fontSize = 30.sp, color = Color.Black)
+                                    )
+
+                                    Text(
+                                        text = "+",
+                                        style = TextStyle(fontSize = 30.sp),
+                                        color = Color.Black,
+                                        modifier = Modifier.clickable {
+                                            val cartItem = iteminfo(dish, priceint ?: 0, quantity)
+                                            val jsonCartItem = Gson().toJson(cartItem)
+                                            file.appendText(jsonCartItem)
+                                            quantity++
+                                            //totalPrice.value = quantity * price
+                                            showToast("Increased")
+                                            showSnackbar = true
+                                        }
+                                    )
+                                    if (showSnackbar) {
+                                        Snackbar(
+                                            action = {
+                                                // Action à effectuer lorsqu'on appuie sur le bouton de l'action
+                                            },
+                                            modifier = Modifier.padding(16.dp) // Modifier pour définir les propriétés du Snackbar
+                                        ) {
+                                            // Contenu du Snackbar
+                                            Text("Plat ajouté au panier")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize() // Utiliser tout l'espace disponible
+                        ) {
+
+                            item {
+                                dishItem?.let { item ->
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.fillMaxWidth() // Utiliser toute la largeur disponible
+                                    ) {
+                                        Spacer(modifier = Modifier.height(60.dp)) // Espace vertical entre le contenu principal et les boutons
+                                        coilImageFromUrl(
+                                            item.images.lastOrNull() ?: "",
+                                            Modifier
+                                                .size(50.dp)
+                                                .padding(8.dp)
+                                        )
+                                        Text(
+                                            text = item.nameFr ?: "",
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.padding(vertical = 8.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            items(ingredientState) { ingredient ->
+                                Text(
+                                    text = ingredient.nameFr ?: "",
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(50.dp)) // Espace vertical entre le contenu principal et les boutons
+                    }
+
+
+                }
+            }
+        }
+    }
+    @Composable
+    fun CoilImageFromUrl(imageUrl: String, modifier: Modifier = Modifier) {
+        val painter: Painter = rememberImagePainter(
+            data = imageUrl,
+            builder = {
+                // Ajoutez des options de configuration si nécessaire
+                // ex. crossfade(true)
+            }
+        )
+        Image(
+            painter = painter,
+            contentDescription = null, // Indiquez une description du contenu si nécessaire
+            modifier = Modifier.size(200.dp)
+        )
+    }
+
+
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun fetchDataItems(categoryTitle: String, itemState: SnapshotStateList<Items>) {
+        val url = "http://test.api.catering.bluecodegames.com/menu"
+        val jsonObject = JSONObject()
+        jsonObject.put("id_shop", "1")
+
+        // Créer une demande de requête POST
+        val jsonObjectRequest = JsonObjectRequest(
+            Request.Method.POST, url, jsonObject,
+            {
+                // Traitement de la réponse ici
+                // Vous pouvez extraire les données du menu de la réponse JSON
+                Log.d("", "données en brut: $it")
+                val result = Gson().fromJson(it.toString(), DataResult::class.java)
+                val itemsFromCategory = result.data.find { it.nameFr == categoryTitle}?.items as? Collection<Items> ?: emptyList()
+                itemState.addAll(itemsFromCategory)
+            },
+            {
+                // Gérer les erreurs de la requête ici
+                Log.d("", "ERREUR: $it")
+            })
+
+        // Ajouter la demande à la file d'attente de Volley pour l'exécution
+        val requestQueue = Volley.newRequestQueue(this).add(jsonObjectRequest)
+    }
+    private fun fetchDataPrices(categoryTitle: String, dishTitle: String, priceState: SnapshotStateList<Prices>) {
+        val url = "http://test.api.catering.bluecodegames.com/menu"
+        val jsonObject = JSONObject()
+        jsonObject.put("id_shop", "1")
+
+        // Créer une demande de requête POST
+        val jsonObjectRequest = JsonObjectRequest(Request.Method.POST, url, jsonObject,
+            { response ->
+                // Traitement de la réponse ici
+                Log.d("", "données en brut: $response")
+                val result = Gson().fromJson(response.toString(), DataResult::class.java)
+                val category = result.data.find { it.nameFr == categoryTitle }
+                val dish = category?.items?.find { it.nameFr == dishTitle }
+                dish?.prices?.let { priceState.addAll(it) }
+            },
+            { error ->
+                // Gérer les erreurs de la requête ici
+                Log.d("", "ERREUR: $error")
+            })
+
+        // Ajouter la demande à la file d'attente de Volley pour l'exécution
+        Volley.newRequestQueue(this).add(jsonObjectRequest)
+    }
+    private fun fetchDataIngredients(categoryTitle: String, dishTitle: String, ingredientState: SnapshotStateList<Ingredients>) {
+        val url = "http://test.api.catering.bluecodegames.com/menu"
+        val jsonObject = JSONObject()
+        jsonObject.put("id_shop", "1")
+
+        // Créer une demande de requête POST
+        val jsonObjectRequest = JsonObjectRequest(Request.Method.POST, url, jsonObject,
+            { response ->
+                // Traitement de la réponse ici
+                Log.d("", "données en brut: $response")
+                val result = Gson().fromJson(response.toString(), DataResult::class.java)
+                val category = result.data.find { it.nameFr == categoryTitle }
+                val dish = category?.items?.find { it.nameFr == dishTitle }
+                dish?.ingredients?.forEach { ingredient ->
+                    ingredientState.add(ingredient)
+                }
+            },
+            { error ->
+                // Gérer les erreurs de la requête ici
+                Log.d("", "ERREUR: $error")
+            })
+
+        // Ajouter la demande à la file d'attente de Volley pour l'exécution
+        Volley.newRequestQueue(this).add(jsonObjectRequest)
+    }
+}
+
+@Composable
+fun DisplayIngredientsList(ingredients: List<Ingredients>) {
+    LazyColumn {
+        items(ingredients) { ingredient ->
+            Text(
+                text = ingredient.nameFr ?: "",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun DisplayCategoryList(
+    dish: String,
+    itemStateItems: SnapshotStateList<Items>,
+    coilImageFromUrl: @Composable (String, Modifier) -> Unit
+) {
+    Box(
+        modifier = Modifier.fillMaxSize() // Remplir toute la taille de l'écran
+    ) {
+        val dishItem = itemStateItems.find { it.nameFr == dish }
+        //val dishIngredients = itemStateIngredients.filter { it.id == dishItem?.id }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize() // Utiliser tout l'espace disponible
+        ) {
+            item {
+                dishItem?.let { item ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth() // Utiliser toute la largeur disponible
+                    ) {
+                        coilImageFromUrl(
+                            item.images.lastOrNull() ?: "",
+                            Modifier
+                                .size(50.dp)
+                                .padding(8.dp)
+                        )
+                        Text(
+                            text = item.nameFr ?: "",
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
                 }
             }
         }

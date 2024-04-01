@@ -34,7 +34,10 @@ import fr.isen.mouillot.androiderestaurant.model.Prices
 import org.json.JSONObject
 import com.google.gson.Gson
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.painter.Painter
@@ -42,9 +45,11 @@ import coil.compose.rememberImagePainter
 
 class ActivityCatListe : ComponentActivity() {
 
-    private fun onDishClicked(dish: String) {
+    private fun onDishClicked(dish: String, cat: String, price: String?) {
         val intent = Intent(this, ActivityCatDetails::class.java)
         intent.putExtra("dish", dish)
+        intent.putExtra("cle", cat)
+        intent.putExtra("price", price)
         startActivity(intent)
     }
 
@@ -143,11 +148,13 @@ class ActivityCatListe : ComponentActivity() {
 
                     actionBar?.title = cat
 
+                    var price = "" ?: ""
+
                     DisplayCategoryList(
                         itemStateItems = itemStateItems,
                         itemStatePrices = itemsStatePrices,
-                        onDishClicked = { dishName ->
-                            onDishClicked(dishName)
+                        onDishClicked = { dishName, price ->
+                            onDishClicked(dishName, cat, price)
                         },
                         coilImageFromUrl = { imageUrl, modifier ->
                             coilImageFromUrl(imageUrl = imageUrl, modifier = modifier)
@@ -167,69 +174,55 @@ class ActivityCatListe : ComponentActivity() {
 }
 
 @Composable
-fun CategoryComponent(category:String, dishes: List<String>, onDishClicked: (String) -> Unit) {
-    Column {
-        Text(
-            text = "Hello $category",
-            textAlign = TextAlign.Center,
-            fontSize = 24.sp,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(32.dp)
-                .fillMaxWidth()
-        )
-        LazyColumn(Modifier.padding(24.dp)) {
-            items(dishes) { dish ->
-                Text(text = dish,
-                    Modifier.padding(0.dp, 8.dp)
-                        .clickable { onDishClicked(dish) }
-                )
+fun DisplayCategoryList(itemStateItems: SnapshotStateList<Items>, itemStatePrices: SnapshotStateList<Prices>, onDishClicked: (String, String?) -> Unit, coilImageFromUrl: @Composable (String, Modifier) -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize() // Remplir toute la taille de l'écran
+    ) {
+        LazyColumn(
+            modifier = Modifier.align(Alignment.Center) // Centrer la colonne verticalement dans le parent
+        ) {
+            items(itemStateItems.size) { index ->
+                val item = itemStateItems[index] // Accéder à l'élément actuel
+                val price = itemStatePrices.getOrNull(index)?.price ?: "" // Accéder au prix correspondant à l'indice actuel
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally // Centrer les éléments horizontalement dans la colonne
+                ) {
+                    coilImageFromUrl(
+                        item.images.last() ?: "", // Utilisez l'URL de l'image de l'élément
+                        Modifier
+                            .size(50.dp) // Taille de l'image, ajustez selon vos besoins
+                            .padding(8.dp)
+                    )
+                    Text(
+                        text = item.nameFr ?: "",
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .padding(vertical = 8.dp)
+                            .clickable {
+                                item.nameFr?.let { name ->
+                                    //val price = itemStatePrices.getOrNull(index)?.price ?: 0 // Obtenir le prix correspondant à l'indice actuel
+                                    onDishClicked(name, price) // Appel à onDishClicked avec le nom et le prix
+                                }
+                            }
+                    )
+                    Text(
+                        text = "${price} €",
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .padding(vertical = 8.dp)
+                            .clickable {
+                                item.nameFr?.let { name ->
+                                    onDishClicked(name, price) // Appel à onDishClicked avec name
+                                }
+                            }
+                    )
+                }
             }
         }
     }
 }
 
-@Composable
-fun DisplayCategoryList(itemStateItems: SnapshotStateList<Items>, itemStatePrices: SnapshotStateList<Prices>, onDishClicked: (String) -> Unit, coilImageFromUrl: @Composable (String, Modifier) -> Unit) {
-    LazyColumn {
-        items(itemStateItems) { item ->
-            //val itemPrice = itemStatePrices.find { it.id == item.id } // Recherchez le prix correspondant à l'élément
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                coilImageFromUrl(
-                    item.images.last() ?: "", // Utilisez l'URL de l'image de l'élément
-                    Modifier
-                        .size(50.dp) // Taille de l'image, ajustez selon vos besoins
-                        .padding(8.dp)
-                )
-                Text(
-                    text = item.nameFr ?: "",
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(vertical = 8.dp)
-                        .clickable {
-                            item.nameFr?.let { name ->
-                                onDishClicked(name) // Appel à onDishClicked avec name
-                            }
-                        }
-                )
-                //val itemPrice = itemStatePrices.find { it.id == item.id } // Recherchez le prix correspondant à l'élément
-                //itemPrice?.let {
-                    //Text(
-                        //text = it.price ?: "", // Affichez le prix trouvé à partir de l'objet itemPrice
-                        //textAlign = TextAlign.Right,
-                        //modifier = Modifier.padding(vertical = 8.dp)
-                    //)
-                //}
-            }
-            //itemPrice?.let {
-            //Text(
-                //text = itemPrice.price ?: "", // Affichez le prix trouvé à partir de l'objet itemPrice
-                //textAlign = TextAlign.Center,
-                //modifier = Modifier.padding(vertical = 8.dp)
-                //)
-            //}
-        }
-    }
-}
 
 @Composable
 fun Greeting2(name: String, modifier: Modifier = Modifier) {

@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.coil.kt.coil)
     implementation("io.coil-kt:coil-compose:1.4.0")
+    implementation("androidx.compose.material:material:1.0.5")
     //implementation 'com.google.code.gson:gson:2.8.8' // Ajout de Gson
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
