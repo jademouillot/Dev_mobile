@@ -333,6 +333,7 @@ class ActivityCatDetails : ComponentActivity() {
     }
 }
 
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ImageCarousel(images: List<String>) {
