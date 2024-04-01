@@ -56,8 +56,15 @@ import androidx.compose.runtime.LaunchedEffect
 import java.io.File
 import androidx.compose.material.Snackbar
 import fr.isen.mouillot.androiderestaurant.model.iteminfo
+import android.view.Menu
+import android.view.MenuItem
+import android.graphics.drawable.Drawable
+import android.widget.TextView
 
 class ActivityCatDetails : ComponentActivity() {
+
+    private var badgeCount: Int = 0
+    private var badgeTextView: TextView? = null
     @Composable
     fun coilImageFromUrl(imageUrl: String, modifier: Modifier = Modifier) {
         val painter: Painter = rememberImagePainter(
@@ -74,6 +81,7 @@ class ActivityCatDetails : ComponentActivity() {
         )
     }
     override fun onCreate(savedInstanceState: Bundle?) {
+        badgeCount = 0
         super.onCreate(savedInstanceState)
 
         val cat = intent.getStringExtra("cle") ?: ""
@@ -155,6 +163,8 @@ class ActivityCatDetails : ComponentActivity() {
                                         modifier = Modifier.clickable {
                                             if (quantity > 1) {
                                                 quantity--
+                                                badgeCount--
+                                                setBadgeCount(badgeCount)
                                                 //totalPrice.value = quantity * price
                                                 showToast("Decreased")
                                             }
@@ -177,6 +187,8 @@ class ActivityCatDetails : ComponentActivity() {
                                             val jsonCartItem = Gson().toJson(cartItem)
                                             file.appendText(jsonCartItem)
                                             quantity++
+                                            badgeCount++
+                                            setBadgeCount(badgeCount)
                                             //totalPrice.value = quantity * price
                                             showToast("Increased")
                                             showSnackbar = true
@@ -238,6 +250,38 @@ class ActivityCatDetails : ComponentActivity() {
             }
         }
     }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        // Ajouter un élément de menu à l'ActionBar
+        val menuItem = menu.add("Settings")
+        menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+
+        // Créer un TextView pour afficher le badge
+        badgeTextView = TextView(this)
+        badgeTextView?.setBackgroundResource(R.drawable.ic_settings)
+        badgeTextView?.setTextColor(resources.getColor(android.R.color.white))
+        badgeTextView?.textSize = 24f
+        badgeTextView?.text = badgeCount.toString()
+
+        // Ajouter le TextView comme action view de l'élément de menu
+        menuItem.actionView = badgeTextView
+
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Gérer les clics sur l'élément de menu
+        return when (item.itemId) {
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    // Méthode pour modifier le nombre affiché sur le badge
+    private fun setBadgeCount(count: Int) {
+        badgeCount = count
+        badgeTextView?.text = badgeCount.toString()
+    }
+
     @Composable
     fun CoilImageFromUrl(imageUrl: String, modifier: Modifier = Modifier) {
         val painter: Painter = rememberImagePainter(
